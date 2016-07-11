@@ -1,0 +1,2479 @@
+#!/bin/bash
+
+
+########################################################################
+#
+# Copyright (C) 2006-2010 ESA (www.esa.int)
+#
+# Description:
+#   Setup SIMSAT COTS
+#   This script downloads and sets up the COTS products for Simulus 5.
+#   It is meant to be run on GNU/Linux.
+#   When invoked with no switches it downloads and builds the COTS for the
+#   host GNU system (x86 or x86_64).
+#   Other platforms are supported through cross-compilation (see switches)
+#   Run this script passing --help argument for more information.
+#
+# File Name : setup-cots
+#
+# Author : Nicola Di Nisio (TERMA)
+#
+# Creation Date : 2006-12-08
+#
+# $Revision: 1.7 $
+#
+# History:
+#   See bottom of the file
+#
+########################################################################
+
+########################################################################
+#                              Settings                                #
+########################################################################
+
+COTS_DIR=$PWD
+
+# Make sure tools in the COTS_DIR are used and have priority
+export PATH=$COTS_DIR/bin:$COTS_DIR:$PATH
+export LD_LIBRARY_PATH=$COTS_DIR/lib:$COTS_DIR/lib64:$LD_LIBRARY_PATH
+export CPPFLAGS="-I$COTS_DIR/include"
+export LDFLAGS="-L$COTS_DIR/lib -L$COTS_DIR/lib64"
+
+##############################################
+# URL from where to download the needed COTS #
+##############################################
+
+#
+# Autotools
+#
+M4_FILE="m4-1.4.12.tar.gz"
+M4_URL="http://ftp.gnu.org/gnu/m4/m4-1.4.12.tar.gz"
+AUTOCONF_FILE="autoconf-2.63.tar.gz"
+AUTOCONF_URL="http://ftp.gnu.org/gnu/autoconf/autoconf-2.63.tar.gz"
+AUTOMAKE_FILE="automake-1.10.2.tar.gz"
+AUTOMAKE_URL="http://ftp.gnu.org/gnu/automake/automake-1.10.2.tar.gz"
+LIBTOOL_FILE="libtool-2.2.6a.tar.gz"
+LIBTOOL_URL="http://ftp.gnu.org/gnu/libtool/libtool-2.2.6a.tar.gz"
+
+#
+# Cross-compiler for win32
+#
+BINUTILS_FILE="binutils-2.18.50-20080109-src.tar.gz"
+BINUTILS_URL="http://heanet.dl.sourceforge.net/sourceforge/mingw/binutils-2.18.50-20080109-src.tar.gz"
+GCC_FILE="gcc-core-3.4.5-20060117-2-src.tar.gz"
+GCC_URL="http://heanet.dl.sourceforge.net/sourceforge/mingw/gcc-core-3.4.5-20060117-2-src.tar.gz"
+FORTRAN_FILE="gcc-g77-3.4.5-20060117-2-src.tar.gz"
+FORTRAN_URL="http://heanet.dl.sourceforge.net/sourceforge/mingw/gcc-g77-3.4.5-20060117-2-src.tar.gz"
+GPP_FILE="gcc-g++-3.4.5-20060117-2-src.tar.gz"
+GPP_URL="http://heanet.dl.sourceforge.net/sourceforge/mingw/gcc-g++-3.4.5-20060117-2-src.tar.gz"
+MINGWRTM_FILE="mingw-runtime-3.9.tar.gz"
+MINGWRTM_URL="http://heanet.dl.sourceforge.net/sourceforge/mingw/mingw-runtime-3.9.tar.gz"
+W32API_FILE="w32api-3.9.tar.gz"
+W32API_URL="http://heanet.dl.sourceforge.net/sourceforge/mingw/w32api-3.9.tar.gz"
+
+#
+# COTS needed only for win32
+#
+CABXTRCT_FILE="cabextract-1.3-1.i386.rpm"
+CABXTRCT_URL="http://www.cabextract.org.uk/cabextract-1.3-1.i386.rpm"
+DLFCN_FILE="dlfcn-win32-r11.tar.bz2"
+DLFCN_URL="http://dlfcn-win32.googlecode.com/files/dlfcn-win32-r11.tar.bz2"
+ECLCPPW_FILE="eclipse-cpp-galileo-win32.zip"
+ECLCPPW_URL="http://eclipsemirror.yoxos.com/eclipse.org/technology/epp/downloads/release/galileo/R/eclipse-cpp-galileo-win32.zip"
+ECLSDKW_FILE="eclipse-SDK-3.5-win32.zip"
+ECLSDKW_URL="http://archive.eclipse.org/eclipse/downloads/drops/R-3.5-200906111540/eclipse-SDK-3.5-win32.zip"
+JREW32_FILE="jre-6u23-windows-i586-s.exe"
+JREW32_URL="http://javadl.sun.com/webapps/download/AutoDL?BundleId=45824"
+JDKW32N_FILE="jdk1.5.0_09.tgz"
+JDKW32N_URL="http://ftp.freesoftware.terma.com/projects/SIMSAT/jdk1.5.0_09.tgz"
+LIBXML2W_FILE="libxml2-2.6.7.win32.zip"
+LIBXML2W_URL="http://xmlsoft.org/sources/win32/oldreleases/libxml2-2.6.7.win32.zip"
+PDCUW32_FILE="pdc34dlls.zip"
+PDCUW32_URL="http://downloads.sourceforge.net/pdcurses/pdc34dlls.zip"
+NCURSES_FILE="ncurses-5.7.tar.gz"
+NCURSES_URL="ftp://ftp.gnu.org/gnu/ncurses/ncurses-5.7.tar.gz"
+OMNI413_FILE="omniORB-4.1.3.tar.gz"
+OMNI413_URL="http://downloads.sourceforge.net/omniorb/omniORB-4.1.3.tar.gz"
+OMNIPY_FILE="omnipython-x86_win32.zip"
+OMNIPY_URL="http://downloads.sourceforge.net/omniorb/omnipython-x86_win32.zip"
+XCW280_FILE="xerces-c-src_2_8_0.tar.gz"
+XCW280_URL="http://apache.eu.lucid.dk/xerces/c/2/sources/xerces-c-src_2_8_0.tar.gz"
+WINE_FILE="wine-1.1.19-2.1.i586.rpm"
+WINE_URL="http://download.opensuse.org/repositories/Emulators:/Wine/SLES9_and_NLD9/i586/wine-1.1.19-2.1.i586.rpm"
+WINSDK_FILE="WinSDKBuild-WinSDKBuild_VistaLibs_X86-common.0.cab"
+WINSDK_URL="X"
+ZLIB_FILE="zlib-1.1.4.win32.zip"
+ZLIB_URL="http://xmlsoft.org/sources/win32/oldreleases/zlib-1.1.4.win32.zip"
+
+#
+# COTS needed only for GNU/Linux
+#
+ECLCPPG_FILE="eclipse-cpp-galileo-linux-gtk-x86_64.tar.gz"
+ECLCPPG_URL="http://ftp.freesoftware.terma.com/projects/SIMSAT/eclipse-cpp-galileo-linux-gtk-x86_64.tar.gz"
+ECLSDKG_FILE="eclipse-SDK-3.5-linux-gtk-x86_64.tar.gz"
+ECLSDKG_URL="http://archive.eclipse.org/eclipse/downloads/drops/R-3.5-200906111540/eclipse-SDK-3.5-linux-gtk-x86_64.tar.gz"
+OMNI414_FILE="omniORB-4.1.4.tar.gz"
+OMNI414_URL="http://omniorb.sourceforge.net/releases/omniORB-4.1.4.tar.gz"
+
+#
+# Platform independent COTS
+#
+CHECKSTYLE_FILE="com.atlassw.tools.eclipse.checkstyle_4.4.2.jar"
+CHECKSTYLE_URL="http://sourceforge.net/projects/eclipse-cs/files/updatesite/4.4.2/com.atlassw.tools.eclipse.checkstyle_4.4.2.jar/download"
+EMMA_FILE="emma-2.0.5312-lib.zip"
+EMMA_URL="http://sourceforge.net/projects/emma/files/emma-release/2.0.5312/emma-2.0.5312-lib.zip/download"
+ECLEMMA_FILE="eclemma-1.4.1.zip"
+ECLEMMA_URL="http://downloads.sourceforge.net/eclemma/eclemma-1.4.1.zip"
+ECLEMMAEQNX_FILE="org.eclemma.runtime.equinox_1.1.0.200908261008.zip"
+ECLEMMAEQNX_URL="http://sourceforge.net/projects/eclemma/files/06_EclEmma_Runtime_for_Equinox/1.1.0/org.eclemma.runtime.equinox_1.1.0.200908261008.zip/download"
+ECLDP_FILE="eclipse-3.5-delta-pack.zip"
+ECLDP_URL="http://archive.eclipse.org/eclipse/downloads/drops/R-3.5-200906111540/eclipse-3.5-delta-pack.zip"
+ECLTF_FILE="eclipse-test-framework-3.5.zip"
+ECLTF_URL="http://archive.eclipse.org/eclipse/downloads/drops/R-3.5-200906111540/eclipse-test-framework-3.5.zip"
+EMFXSD_FILE="emf-xsd-SDK-2.5.0.zip"
+# Link updated
+EMFXSD_URL="http://archive.eclipse.org/modeling/emf/emf/downloads/drops/2.5.0/R200906151043/emf-xsd-SDK-2.5.0.zip"
+GEFSDK_FILE="GEF-SDK-3.5.0.zip"
+# Link updated
+GEFSDK_URL="http://archive.eclipse.org/tools/gef/downloads/drops/3.5.0/R200906221200/GEF-SDK-3.5.0.zip"
+IZPACK_FILE="IzPack-4.3.tgz"
+IZPACK_URL="http://ftp.freesoftware.terma.com/projects/SIMSAT/IzPack-4.3.tgz"
+JDKGNU_FILE="jdk-6u22-linux-x64.bin"
+# this file can't be automatically downloaded. Download it manually.
+JDKGNU_URL="http://cds.sun.com/is-bin/INTERSHOP.enfinity/WFS/CDS-CDS_Developer-Site/en_US/-/USD/VerifyItem-Start/jdk-6u16-linux-i586.bin?BundledLineItemUUID=ncCJ_hCwpXUAAAEsh2oAHlAt&OrderID=7JCJ_hCw3_4AAAEsfWoAHlAt&ProductID=Dx1IBe.prBgAAAEirRcTvuC_&FileName=/jdk-6u16-linux-i586.bin"
+JUNIT_FILE="junit4.7.zip"
+JUNIT_URL="http://downloads.sourceforge.net/junit/junit4.7.zip"
+LIBIC_FILE="libiconv-1.9.2-1-lib.zip"
+LIBIC_URL="http://downloads.sourceforge.net/gnuwin32/libiconv-1.9.2-1-lib.zip"
+LIBICBIN_FILE="libiconv-1.9.2-1-bin.zip"
+LIBICBIN_URL="http://downloads.sourceforge.net/gnuwin32/libiconv-1.9.2-1-bin.zip"
+RHINO_FILE="rhino1_7R2.zip"
+RHINO_URL="ftp://ftp.mozilla.org/pub/mozilla.org/js/rhino1_7R2.zip"
+JSCORBA_FILE="jscorbaadapter-1.0.0.tgz"
+JSCORBA_URL="http://ftp.freesoftware.terma.com/projects/SIMSAT/jscorbaadapter-1.0.0.tgz"
+EDITLINE_FILE="libedit-20090301-3.0.tar.gz"
+EDITLINE_URL="http://www.thrysoee.dk/editline/libedit-20090301-3.0.tar.gz"
+CPPUNIT_1_10_2_FILE="cppunit-1.10.2.tar.gz"
+CPPUNIT_1_10_2_URL="http://sourceforge.net/projects/cppunit/files/cppunit/1.10.2/cppunit-1.10.2.tar.gz"
+CPPUNIT_1_12_1_FILE="cppunit-1.12.1.tar.gz"
+CPPUNIT_1_12_1_URL="http://downloads.sourceforge.net/cppunit/cppunit-1.12.1.tar.gz"
+JCOMMON_FILE="jcommon-1.0.13.tar.gz"
+JCOMMON_URL="http://sourceforge.net/projects/jfreechart/files/3.%20JCommon/1.0.13/jcommon-1.0.13.tar.gz/download"
+JFREECHR_FILE="jfreechart-1.0.10.tar.gz"
+JFREECHR_URL="http://sourceforge.net/projects/jfreechart/files/1.%20JFreeChart/1.0.10/jfreechart-1.0.10.tar.gz/download"
+JFACEEXT_FILE="jface-extensions-1.0.0.jar"
+#JFACEEXT_URL="http://ftp.freesoftware.terma.com/projects/SIMSAT/jface-extensions-1.0.0.jar"
+JFACEEXT_URL="https://github.com/DerekRothwell/esa.git/trunk/jface-extensions-1.0.0.jar"
+JFCHREXT_FILE="jfreechart-extensions-1.0.0.jar"
+#JFCHREXT_URL="http://ftp.freesoftware.terma.com/projects/SIMSAT/jfreechart-extensions-1.0.0.jar"
+JFCHREXT_URL="https://github.com/DerekRothwell/esa.git/trunk/jfreechart-extensions-1.0.0.jar"
+
+#
+# COTS needed only for GNU/Linux - except SLES 11 as we use operating system installed versions
+#
+APACHE_FILE="apache-ant-1.6.5-bin.tar.gz"
+APACHE_URL="http://archive.apache.org/dist/ant/binaries/apache-ant-1.6.5-bin.tar.gz"
+GDB_FILE="gdb-6.8.tar.gz"
+GDB_URL="ftp://ftp.gnu.org/gnu/gdb/gdb-6.8.tar.gz"
+LIBXML2_FILE="libxml2-2.6.7.tar.gz"
+LIBXML2_URL="http://xmlsoft.org/sources/old/libxml2-2.6.7.tar.gz"
+PYTHON_FILE="Python-2.3.3.tgz"
+PYTHON_URL="http://www.python.org/ftp/python/2.3.3/Python-2.3.3.tgz"
+XERCESJ_FILE="Xerces-J-bin.2.6.2.tar.gz"
+XERCESJ_URL="http://archive.apache.org/dist/xml/xerces-j/binaries/Xerces-J-bin.2.6.2.tar.gz"
+REGEX_FILE="regex-0.12-MSYS-1.0.11-1.tar.bz2"
+REGEX_URL="http://downloads.sourceforge.net/mingw/regex-0.12-MSYS-1.0.11-1.tar.bz2"
+
+
+########################################################################
+#                         Utility functions                            #
+########################################################################
+
+#
+# Detect current hardware and compute best config to perform the fastest setup
+#
+function optimise-on-current-hardware
+{
+    # When running this script on Linux, for compiling the COTS either for
+    # direct compilation under GNU/Linux or cross-compilation for Windows,
+    # we can count the number of installed CPUs and exploit them for compiling
+    # multiple files in parallel.
+    if test "$TARGET_PLATFORM" == "gnu" -o "$TARGET_PLATFORM" == "w32"
+    then
+       export PARALLEL_FACTOR=`cat /proc/cpuinfo | grep processor | wc -l`
+       export PARALLEL_FLAGS="-j $PARALLEL_FACTOR"
+   
+       echo " "
+       echo "****************** "
+       echo "Using $PARALLEL_FACTOR processors"
+       echo "****************** "
+       echo " "
+    fi
+}
+
+#
+# Check the presence of a given tool
+# $1: Tool to check
+# $2: Platform on which the tool is needed
+#
+function check-tool
+{
+    # If the tool is required for gnu but the current platfor is not gnu, skip it
+    if test "x$2" = "xgnu" -a "$TARGET_PLATFORM" != "gnu"
+    then
+        return
+    fi
+
+    # If the tool is required for mac but the current platfor is not mac, skip it
+    if test "x$2" = "xmac" -a "$TARGET_PLATFORM" != "mac"
+    then
+        return
+    fi
+
+    # If the tool is required for w32 but the current platfor is not w32, skip it
+    if test "x$2" = "xw32" -a "$TARGET_PLATFORM" != "w32"
+    then
+        return
+    fi
+
+    which $1 &> /dev/null
+    if test "x$?" != "x0"
+    then
+        echo "$1 tool is not installed, please install it before proceeding."
+        exit
+    else
+        echo "$1: present ==> OK"
+    fi
+}
+
+#
+# Check the presence of a given COTS archive file
+# $1: file to check
+# $2: location to download the file if absent
+# $3: platform [all|gnu|mac|w32]
+#
+# If COTSREPO is defined, the $COTSREPO location is sought first, in case of
+# failure it falls back on the URL provided in $2
+#
+function check-cots
+{
+    # If the COTS is for gnu but the current platfor is not gnu, skip it
+    if test "x$3" = "xgnu" -a "$TARGET_PLATFORM" != "gnu"
+    then
+        return
+    fi
+
+    # If the COTS is for gnu but the current platfor is not gnu, skip it
+    if test "x$3" = "xmac" -a "$TARGET_PLATFORM" != "mac"
+    then
+        return
+    fi
+
+    # If the COTS is for w32 but the current platfor is not w32, skip it
+    if test "x$3" = "xw32" -a "$TARGET_PLATFORM" != "w32"
+    then
+        return
+    fi
+
+    # If the COTS is for w32n but the current platfor is not w32, skip it
+    if test "x$3" = "xw32n" -a "$TARGET_PLATFORM" != "w32n"
+    then
+        return
+    fi
+
+    if test -f "$1"
+    then
+        echo "$1: present ==> OK"
+        return
+    fi
+
+    # File $1 can be available on the standard URL (DOWNLOAD_URL)
+    # If a COTSREPO is specified from $COTSREPO/$1 the this second value
+    # is stored in DOWNLOAD_URL and the standard URL goes in ALTERNATE_URL.
+    # Finally If $COTSREPO is defined and starts with a '/', then the
+    # location of the file is stored in FILE and DOWNLOAD_URL gets the
+    # standard URL, leaving ALTERNATE_URL empty.
+    FILE="x"
+    DOWNLOAD_URL=$2
+    ALTERNATE_URL=$2
+    if test "x$COTSREPO" != "x"
+    then
+        # If COTSREPO starts with a slash, files are taken for the file system
+        case $COTSREPO in
+            /*) FILE=$COTSREPO/$1; ALTERNATE_URL="";;
+             *) DOWNLOAD_URL="$COTSREPO/$1";;
+        esac
+    fi
+
+    # If the file is present in the file system, do a simple file copy
+    if test -f "$FILE"
+    then
+        cp -f $FILE $COTS_DIR
+        echo "$1: copied ==> OK"
+        return
+    fi
+
+    # If the COTS file is absent and there is a URL, download it
+    if test ! -f $1 -a "x$DOWNLOAD_URL" != "xX"
+    then
+        echo "Downloading from $DOWNLOAD_URL"
+        wget --quiet --timeout=30 --continue --tries=2 --output-document=$1 $DOWNLOAD_URL
+        if test "$?" != "0"
+        then
+            echo "Failed to download from $DOWNLOAD_URL"
+            if test "x$ALTERNATE_URL" != "xX"
+            then
+                echo "Trying to download from $ALTERNATE_URL"
+                wget --quiet --timeout=30 --continue --tries=2 --output-document=$1 $ALTERNATE_URL
+                if test "$?" != "0"
+                then
+                    echo "Failed to download also from $ALTERNATE_URL"
+                    echo "COTS file $1 is no longer available at"
+                    echo "$2"
+					# Added following lines
+					if [ "$DOWNLOAD_URL" == "$JDKGNU_URL" ]; then 
+						echo "********"
+						echo "Failed download of $JDKGNU_FILE"
+						echo "Please, download this file manually as it is released under acceptance of Oracle License Agreement"
+						echo "Step 1. Open a browser"
+						echo "Step 2. Type in the address bar:\"http://www.oracle.com/technetwork/java/javasebusiness/downloads/java-archive-downloads-javase6-419409.html\""
+						echo "Step 3. Scroll down until you can see the link: \"Java SE Runtime Environment 6u22\""
+						echo "Step 4. Accept licence agreement by ticking the corresponding box"
+						echo "Step 5. Click on the link: \"jdk-6u22-linux-x64.bin\""
+						echo "Step 6. Log in or create an oracle account ( If creating an oracle account, please restart from Step 1)"
+						echo "Step 7. The download will start automatically"
+						echo "********"
+						rm $JDKGNU_FILE
+					fi
+					# End added lines
+                    exit
+                fi
+                echo "$1: downloaded ==> OK"
+                return
+            fi
+            exit
+        fi
+        echo "$1: downloaded ==> OK"
+        return
+    fi
+
+    # If the COTS is absent and no URL is provided, file an error
+    if test ! -f "$1" -a "x$2" = "xX"
+    then
+        echo "$1 not present, please download manually and run again this script."
+        echo "COTS file $1 is no longer available at"
+        echo "$2"
+        exit
+    fi
+}
+
+#
+# Check the exit status of the previous command and exits if != 0
+#
+function check-status
+{
+    if test "x$?" != "x0"
+    then
+        echo "***********************************************************"
+        echo "                           ERROR                           "
+        echo "Check the log of the last step to determine what went wrong"
+        echo "***********************************************************"
+        exit
+    fi
+}
+
+#
+# Configure, make and install the current package
+# $1: Target platform for the configuration [w32]
+#     If not provided defaults to the build platform (gnu)
+# $*: All subsequent arguments are passed to the configure script
+#
+function configure
+{
+    TARGET_FLAG=""
+    if test "x$1" = "xw32"
+    then
+        TARGET_FLAG="--host=mingw32"
+    fi
+
+    echo "configuring (see _config.log)"
+    ./configure --prefix=$COTS_DIR $TARGET_FLAG $2 $3 $4 $5 $6 $7 $8 $9 &> _config.log
+    check-status
+}
+
+function make-install
+{
+    echo "making (see _make.log)"
+    make $PARALLEL_FLAGS $1 $2 $3 $4 $5 $6 $7 $8 $9 &> _make.log
+    check-status
+    echo "installing (see _install.log)"
+    make install &> _install.log
+    check-status
+}
+
+# takes a folder as $1 and goes through all its files
+# For each symbolic link, converts it into a physical copy
+function dereference-soft-links
+{
+    for file in `ls -1 "$1"`
+    do
+        # if it is a symlink to a file ...
+        if test -L "$1/$file" -a -f "$1/$file"
+        then
+            cp "$1/$file" tmp.file
+            rm "$1/$file"
+            mv tmp.file "$1/$file"
+        fi
+
+        # if it is a symlink to a directory ...
+        if test -L "$1/$file" -a -d "$1/$file"
+        then
+            cp -fLR "$1/$file" tmp.file
+            rm "$1/$file"
+            mv tmp.file "$1/$file"
+        fi
+
+        # recurse on sub-directories
+        if test -d "$1/$file"
+        then
+            dereference-soft-links "$1/$file"
+        fi
+    done
+}
+
+########################################################################
+#                      Setup of Java based COTS                        #
+########################################################################
+
+function setup-java
+{
+    cd $COTS_DIR
+
+    echo " "
+    echo "------------------------------"
+    echo "Setup Java"
+    echo "------------------------------"
+    echo " "
+
+    if test "$TARGET_PLATFORM" = "w32n"
+    then
+        tar xzf $JDKW32N_FILE
+        check-status
+        mv `basename $JDKW32N_FILE .tgz` jdk
+        export JAVA_HOME=${PWD}/jdk
+    else
+       # The JVM for GNU/Linux is needed in any case, because we want to be
+       # able to compile java code from the GNU/Linux box also in a cross
+       # compilation setup.
+       chmod u+x $JDKGNU_FILE
+       yes | ./$JDKGNU_FILE  > /dev/null
+	   sleep 1 # Allow enough time before renaming the file.
+       mv jdk1.6.0_22 jdk
+       check-status
+       export JAVA_HOME=${PWD}/jdk
+    
+       # If the target platform is w32 we need also the JRE for w32.
+       if test "$TARGET_PLATFORM" = "w32"
+       then
+           chmod u+x $JREW32_FILE
+           #unpack the JRE for Windows using wine
+           mv $HOME/.wine $HOME/.wine.$PPID.$$ &> /dev/null
+           wine $JREW32_FILE /s /v"/qn ADDLOCAL=jrecore EULA=0" &> /dev/null
+           sleep 8 # let the wine process really exit
+           rm -rf $COTS_DIR/jre6
+           if test -d "$HOME/.wine/drive_c"
+           then
+               # this is for wine 1.x
+               mv "$HOME/.wine/drive_c/Program Files/Java/jre6" .
+           else
+               # this is for older version of wine
+               mv "$HOME/.wine/fake_windows/Program Files/Java/jre6" .
+           fi
+           rm -rf $HOME/.wine
+           mv $HOME/.wine.$PPID.$$ $HOME/.wine &> /dev/null
+           mv jre6 jre
+           check-status
+           export JAVA_HOME=${PWD}/jre
+        fi
+    fi
+
+    export JAVA_ROOT=${JAVA_HOME}
+    export JDK_HOME=${JAVA_HOME}
+    export SDK_HOME=${JAVA_HOME}
+    export JRE_HOME=${JAVA_HOME}/jre
+    export JAVA_BINDIR=${JAVA_HOME}/bin
+    export PATH=${JAVA_BINDIR}:${JRE_HOME}/bin:${PATH}
+}
+
+function setup-ant
+{
+    #
+    # don't install for SLES 11 as we use operating system installed versions
+    #
+    if test "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup Apache Ant"
+        echo "------------------------------"
+        echo " "
+
+        tar xzf $APACHE_FILE
+        APACHE_DIR=`basename $APACHE_FILE -bin.tar.gz`
+        mv -f $APACHE_DIR/bin/* bin/
+        mv -f $APACHE_DIR/lib/* lib/
+        mv -f $APACHE_DIR/etc/*.jar etc/
+        rm -rf $APACHE_DIR &
+    fi
+}
+
+function setup-eclipse-with-cdt
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup Eclipse (with CDT)"
+    echo "------------------------------"
+    echo " "
+
+    cd $COTS_DIR
+
+    if test "$TARGET_PLATFORM" = "gnu"
+    then
+        tar xzf $ECLSDKG_FILE
+        check-status
+        tar xzf $ECLCPPG_FILE eclipse/plugins eclipse/features
+        check-status
+        (cd $COTS_DIR/bin && ln -s ../eclipse/eclipse)
+    fi
+
+    if test "$TARGET_PLATFORM" = "w32" -o "$TARGET_PLATFORM" = "w32n"
+    then
+        unzip -n $ECLCPPW_FILE > /dev/null
+        unzip -n $ECLSDKW_FILE > /dev/null
+    fi
+}
+
+function setup-eclipse-delta-pack
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup Eclipse Delta Pack"
+    echo "------------------------------"
+    echo " "
+
+    mkdir tmp
+    cd tmp
+    unzip -n -q ../$ECLDP_FILE 
+    check-status
+    mv eclipse eclipse-delta-pack
+    mv eclipse-delta-pack ..
+    cd ..
+    rmdir tmp
+}
+
+function setup-eclipse-test-framework
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup Eclipse Test Framework"
+    echo "------------------------------"
+    echo " "
+
+    unzip -n $ECLTF_FILE > /dev/null
+    check-status
+}
+
+function setup-emf-xsd
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup EMF XSD SDK"
+    echo "------------------------------"
+    echo " "
+
+    unzip -n $EMFXSD_FILE > /dev/null
+    check-status
+}
+
+function setup-gef
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup GEF"
+    echo "------------------------------"
+    echo " "
+
+    unzip -n $GEFSDK_FILE > /dev/null
+    check-status
+}
+
+function setup-emma
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup Emma"
+    echo "------------------------------"
+    echo " "
+
+    mkdir -p lib
+    cd lib
+    unzip -n ../$EMMA_FILE > /dev/null
+    check-status
+    cd $COTS_DIR
+}
+
+function setup-checkstyle
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup Checkstyle"
+    echo "------------------------------"
+    echo " "
+
+    mkdir -p lib
+    jar xf $CHECKSTYLE_FILE lib/checkstyle-all-4.4.jar > /dev/null
+    check-status
+}
+
+function setup-eclemma
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup EclEmma"
+    echo "------------------------------"
+    echo " "
+
+    cd eclipse
+    unzip -n ../$ECLEMMA_FILE > /dev/null
+    check-status
+    cd $COTS_DIR
+}
+
+function setup-eclemma-for-equinox
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup EclEmma for Equinox"
+    echo "------------------------------"
+    echo " "
+
+    mkdir -p misc
+    cd misc
+    unzip -n ../$ECLEMMAEQNX_FILE > /dev/null
+    check-status
+    cd $COTS_DIR
+}
+
+function setup-rhino
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup Rhino"
+    echo "------------------------------"
+    echo " "
+
+    unzip -n $RHINO_FILE > /dev/null
+    check-status
+    ln -s `basename $RHINO_FILE .zip` rhino
+}
+
+function setup-jscorba
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup JsCorba"
+    echo "------------------------------"
+    echo " "
+
+    tar xpzf $JSCORBA_FILE
+    check-status
+    cd rhino
+    ln -s ../jscorba
+    cd $COTS_DIR
+}
+
+# Configures the Eclipse installation.
+# It must be executed only once all the plugins have beed installed.
+function setup-eclipse-final
+{
+    echo " "
+    echo "------------------------------"
+    echo "Configuring Eclipse"
+    echo "------------------------------"
+    echo " "
+
+    if test "$TARGET_PLATFORM" = "gnu"
+    then
+        $COTS_DIR/eclipse/eclipse -clean -initialize -nosplash
+    fi
+
+    if test "$TARGET_PLATFORM" = "w32" 
+    then
+        # The eclipse.exe program wants to find a java interpreter at:
+        #
+        # $COTS_DIR/eclipse/jre/bin/javaw.exe
+
+        ln -s $COTS_DIR/jre $COTS_DIR/eclipse/jre
+        wine $COTS_DIR/eclipse/eclipse.exe -clean -initialize -nosplash >& /dev/null
+    fi
+
+    if test "$TARGET_PLATFORM" = "w32n"
+    then
+        $COTS_DIR/eclipse/eclipse.exe -clean -initialize -nosplash
+    fi
+}
+
+function setup-xerces-j
+{
+    #
+    # don't install for SLES 11 as we use operating system installed versions
+    #
+    if test "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup Xerces-J"
+        echo "------------------------------"
+        echo " "
+
+        tar xpzf $XERCESJ_FILE
+        check-status
+    fi
+}
+
+function setup-junit
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup JUnit"
+    echo "------------------------------"
+    echo " "
+
+    unzip -n $JUNIT_FILE > /dev/null
+    check-status
+}
+
+function setup-IzPack
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup IzPack"
+    echo "------------------------------"
+    echo " "
+
+    tar xfz $IZPACK_FILE
+    check-status
+}
+
+function setup-jcommon
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup JCommon"
+    echo "------------------------------"
+    echo " "
+
+    tar xpzf $JCOMMON_FILE
+    check-status
+}
+
+function setup-jfreechart
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup JFreeChart"
+    echo "------------------------------"
+    echo " "
+
+    tar xpzf $JFREECHR_FILE
+    check-status
+
+}
+
+
+########################################################################
+#                          Setup of Autotools                          #
+########################################################################
+
+function setup-autotools
+{
+    cd $COTS_DIR
+
+    if test "$TARGET_PLATFORM" != "w32n"
+    then
+       # m4 1.4.12 is not working properly in msys for some reason
+       echo " "
+       echo "------------------------------"
+       echo "Setup m4"
+       echo "------------------------------"
+       echo " "
+
+       tar xfz $M4_FILE
+       M4_DIR=`basename $M4_FILE .tar.gz`
+       cd $M4_DIR
+       configure
+       make-install
+       cd $COTS_DIR
+       rm -rf $M4_DIR &
+    fi
+
+    echo " "
+    echo "------------------------------"
+    echo "Setup autoconf"
+    echo "------------------------------"
+    echo " "
+
+    tar xfz $AUTOCONF_FILE
+    AUTOCONF_DIR=`basename $AUTOCONF_FILE .tar.gz`
+    cd $AUTOCONF_DIR
+    configure
+    make-install
+    cd $COTS_DIR
+    rm -rf $AUTOCONF_DIR &
+
+    echo " "
+    echo "------------------------------"
+    echo "Setup automake"
+    echo "------------------------------"
+    echo " "
+
+    tar xfz $AUTOMAKE_FILE
+    AUTOMAKE_DIR=`basename $AUTOMAKE_FILE .tar.gz`
+    cd $AUTOMAKE_DIR
+    configure
+    make-install
+    cd $COTS_DIR
+    rm -rf $AUTOMAKE_DIR  &
+
+    echo " "
+    echo "------------------------------"
+    echo "Setup libtool"
+    echo "------------------------------"
+    echo " "
+
+    tar xfz $LIBTOOL_FILE
+    LIBTOOL_DIR=`basename $LIBTOOL_FILE a.tar.gz`
+    cd $LIBTOOL_DIR
+    configure
+    make-install
+    cd $COTS_DIR
+    rm -rf $LIBTOOL_DIR  &
+}
+
+########################################################################
+#                      Setup of C/C++ based COTS                       #
+########################################################################
+
+function setup-cross-compiler
+{
+    cd $COTS_DIR
+
+    if test "$TARGET_PLATFORM" = "w32"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup cross-compiler for win32"
+        echo "------------------------------"
+        echo " "
+
+        chmod u+x build-cross-compiler
+        mkdir mingw32
+        echo "building (see _make.log)"
+        ./build-cross-compiler &> mingw32/_make.log
+        check-status
+
+        # Copy the MinGW run-time to the bin folder
+        cp $COTS_DIR/mingw32/bin/mingwm10.dll $COTS_DIR/bin/
+        check-status
+    fi
+}
+
+function setup-dlfcn
+{
+    DLFCN_DIR=`basename $DLFCN_FILE .tar.bz2`
+    
+    if test "$TARGET_PLATFORM" = "w32"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup dlfcn"
+        echo "------------------------------"
+        echo " "
+
+        bunzip2 --keep $DLFCN_FILE > /dev/null
+        tar xf `basename $DLFCN_FILE .bz2` > /dev/null
+        rm -f  `basename $DLFCN_FILE .bz2`
+        cd $DLFCN_DIR
+        dos2unix * &> /dev/null
+        
+        # Strip on SLES11 fails, instruct make to ignore any such failure
+        cat Makefile | sed -e 's/$(STRIP)/-$(STRIP)/g' > Makefile.tmp
+        mv Makefile.tmp Makefile
+        
+        chmod a+x configure
+        # Invoke the configure script directly with bash, without relying on the
+        # shebang. This is needed to overcome errors given on some Debian and
+        # Ubuntu systems where /bin/sh point to /bin/dash instead of /bin/bash
+        echo "configuring (see _config.log)"
+        bash ./configure --enable-shared --prefix=$COTS_DIR --libdir=$COTS_DIR/lib --incdir=$COTS_DIR/include --cc=mingw32-gcc &> _config.log
+        cat dlfcn.c | sed -e 's/\(nobject->hModule = hModule;\)/\1\nnobject->next = NULL;/' > dlfcn.c.tmp
+        mv dlfcn.c.tmp dlfcn.c
+        chmod -f 777 /tmp/test.dll /tmp/test.c &> /dev/null
+        make-install
+        cat $COTS_DIR/include/dlfcn.h | sed -e 's/^\(#define DLFCN_H\)$/\1\n\n#ifdef __cplusplus\nextern "C" {\n#endif\n/' \
+                                            -e 's:^\(#endif /\* DLFCN_H \*/\):#ifdef __cplusplus\n}\n#endif\n\n\1:' \
+                                        > $COTS_DIR/include/dlfcn.h.tmp
+        mv $COTS_DIR/include/dlfcn.h.tmp $COTS_DIR/include/dlfcn.h
+        $COTS_DIR/bin/mingw32-ranlib $COTS_DIR/lib/libdl.a
+        cd $COTS_DIR
+    fi
+
+    if test "$TARGET_PLATFORM" = "w32n"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup dlfcn"
+        echo "------------------------------"
+        echo " "
+
+        bunzip2 --keep $DLFCN_FILE > /dev/null
+        tar xf `basename $DLFCN_FILE .bz2` > /dev/null
+        rm -f  `basename $DLFCN_FILE .bz2`
+        cd $DLFCN_DIR
+        chmod a+x configure
+        ./configure --enable-shared --prefix=$COTS_DIR --libdir=$COTS_DIR/lib --incdir=$COTS_DIR/include &> _config.log
+        make-install
+        cat $COTS_DIR/include/dlfcn.h | sed -e 's/^\(#define DLFCN_H\)$/\1MAGICNLMAGICNL#ifdef __cplusplusMAGICNLextern "C" {MAGICNL#endifMAGICNL/' \
+                                            -e 's:^\(#endif /\* DLFCN_H \*/\):#ifdef __cplusplusMAGICNL}MAGICNL#endifMAGICNLMAGICNL\1:' | perl -p -e 's#MAGICNL#
+#g' > $COTS_DIR/include/dlfcn.h.tmp
+        mv $COTS_DIR/include/dlfcn.h.tmp $COTS_DIR/include/dlfcn.h
+        ranlib $COTS_DIR/lib/libdl.a
+        cd $COTS_DIR
+    fi
+    
+    rm -rf $DLFCN_DIR &
+}
+
+function setup-libiconv
+{
+    if test "$TARGET_PLATFORM" = "w32" -o "$TARGET_PLATFORM" = "w32n"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup libiconv"
+        echo "------------------------------"
+        echo " "
+
+        unzip -n $LIBIC_FILE > /dev/null
+        unzip -n $LIBICBIN_FILE > /dev/null
+        mv bin/libiconv2.dll bin/iconv.dll
+    fi
+}
+
+function setup-python
+{
+    if test "$TARGET_PLATFORM" != "w32n" -a "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+      echo " "
+      echo "------------------------------"
+      echo "Setup Python"
+      echo "------------------------------"
+      echo " "
+
+      tar xzf $PYTHON_FILE
+      PYTHON_DIR=`basename $PYTHON_FILE .tgz`
+      cd $PYTHON_DIR
+      configure
+      make-install
+      cd $COTS_DIR
+      rm -rf $PYTHON_DIR &
+   fi
+}
+
+function setup-zlib
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup zlib"
+    echo "------------------------------"
+    echo " "
+
+    if test "$TARGET_PLATFORM" = "w32" -o "$TARGET_PLATFORM" = "w32n"
+    then
+         #
+         # Unpack ready made package for win32
+         #
+        unzip -n $ZLIB_FILE > /dev/null
+        ZLIB_DIR=`basename $ZLIB_FILE .zip`
+        mv $ZLIB_DIR/include/* $COTS_DIR/include/
+        mv $ZLIB_DIR/lib/* $COTS_DIR/lib/
+        cp $COTS_DIR/lib/zlib.dll $COTS_DIR/lib/libz.dll
+        echo "LIBRARY libz.dll
+EXPORTS
+gzFile
+gzopen
+gzwrite
+gzread
+gzclose" > $COTS_DIR/lib/libz.def
+        mingw32-dlltool -d $COTS_DIR/lib/libz.def \
+                        -l $COTS_DIR/lib/libz.a
+        rm -rf $ZLIB_DIR &
+    fi
+
+    cd $COTS_DIR
+    rm -rf $ZLIB_DIR &
+}
+
+function setup-libxml2
+{
+    #
+    # don't install for SLES 11 as we use operating system installed versions
+    #
+    if test "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup libxml2"
+        echo "------------------------------"
+        echo " "
+
+        if test "$TARGET_PLATFORM" = "w32" -o "$TARGET_PLATFORM" = "w32n"
+        then
+            #
+            # Unpack ready made package for win32
+            #
+            unzip -n $LIBXML2W_FILE > /dev/null
+            LIBXML_DIR=`basename $LIBXML2W_FILE .zip`
+            mv $LIBXML_DIR/include/* $COTS_DIR/include/
+            mv $LIBXML_DIR/lib/* $COTS_DIR/lib/
+            rm -rf $LIBXML_DIR &
+        fi
+
+        if test "$TARGET_PLATFORM" = "gnu"
+        then
+            tar xzf $LIBXML2_FILE > /dev/null
+            LIBXML_DIR=`basename $LIBXML2_FILE .tar.gz`
+            cd $LIBXML_DIR
+            configure
+            make-install
+            cd $COTS_DIR
+            rm -rf $LIBXML_DIR &
+        fi
+    fi
+}
+
+function setup-cppunit
+{
+    #
+    # SLES 11 installs version 1.12.1, other operating systems 1.10.2
+    #
+    echo " "
+    echo "------------------------------"
+    echo "Setup CppUnit"
+    echo "------------------------------"
+    echo " "
+
+    if test "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        tar xzf $CPPUNIT_1_10_2_FILE
+        CPPUNIT_DIR=`basename $CPPUNIT_1_10_2_FILE .tar.gz`
+        cd $CPPUNIT_DIR
+
+        # Apply patch to make compilation with GCC 4.3 work
+        echo  "#include <stdlib.h>" > src/cppunit/TypeInfoHelper.cpp.new
+        cat  src/cppunit/TypeInfoHelper.cpp >> src/cppunit/TypeInfoHelper.cpp.new
+        mv src/cppunit/TypeInfoHelper.cpp.new src/cppunit/TypeInfoHelper.cpp
+
+        if test "$TARGET_PLATFORM" = "gnu" -o "$TARGET_PLATFORM" = "w32n"
+        then
+            configure
+            make-install
+        fi
+
+        if test "$TARGET_PLATFORM" = "w32"
+        then
+            CC=mingw32-gcc
+            CPPFLAGS="" LDFLAGS="" configure
+            CPPFLAGS="" LDFLAGS="" make-install
+        fi
+
+        cd $COTS_DIR
+        rm -rf $CPPUNIT_DIR &
+    else
+        tar xzf $CPPUNIT_1_12_1_FILE
+        CPPUNIT_DIR=`basename $CPPUNIT_1_12_1_FILE .tar.gz`
+        cd $CPPUNIT_DIR
+
+        if test "$TARGET_PLATFORM" = "gnu" -o "$TARGET_PLATFORM" = "w32n"
+        then
+            configure
+            make-install
+        fi
+
+        cd $COTS_DIR
+        rm -rf $CPPUNIT_DIR &
+    fi
+}
+
+function setup-xerces-c
+{
+    if test "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup xerces-c"
+        echo "------------------------------"
+        echo " "
+
+        if test "$TARGET_PLATFORM" = "w32" -o "$TARGET_PLATFORM" = "w32n"
+        then
+            tar xzf $XCW280_FILE
+            XERDIR=`basename  $XCW280_FILE .tar.gz`
+
+            XER_CC=mingw32-gcc
+            XER_CPP=mingw32-g++
+            XER_HOST="-C --host=mingw32"
+            if test "$TARGET_PLATFORM" = "w32n"
+            then
+                XER_CC=gcc
+                XER_CPP=g++
+                XER_HOST=""
+            fi
+
+            cd $XERDIR/src/xercesc/
+            echo "configuring (see _configure.log)"
+            XERCESCROOT=$COTS_DIR/$XERDIR ./runConfigure -P $COTS_DIR \
+                                                        -p mingw-msys \
+                                                        -c $XER_CC \
+                                                        -x $XER_CPP \
+                                                        -n fileonly \
+                                                        -r none \
+                                                        -z -mno-cygwin \
+                                                        $XER_HOST &> _configure.log
+            cat Makefile.incl | \
+                sed -e 's/MAKE_SHARED = dllwrap .*$/MAKE_SHARED = ${CXX} -shared ${LDFLAGS}/' > Makefile.incl.tmp
+            mv Makefile.incl.tmp Makefile.incl
+            echo "making (see _make.log)"
+            # make, without enforcing parallelism, otherwise build tends to fail
+            XERCESCROOT=$COTS_DIR/$XERDIR make &> _make.log
+            check-status
+            echo "installing (see _install.log)"
+            XERCESCROOT=$COTS_DIR/$XERDIR make install &> _install.log
+            check-status
+            rm -rf $XERDIR &
+        fi
+    fi
+}
+
+function setup-cabextract
+{
+    if test "$TARGET_PLATFORM" != "w32"
+    then
+        return
+    fi
+
+    echo " "
+    echo "------------------------------"
+    echo "Setup cabextract"
+    echo "------------------------------"
+    echo " "
+
+    cd $COTS_DIR
+
+    rpm2cpio $CABXTRCT_FILE | cpio -idmv &> /dev/null
+
+    mkdir -p bin
+    mv usr/bin/* bin/
+    rm -rf usr
+}
+
+function setup-omniORB
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup omniORB"
+    echo "------------------------------"
+    echo " "
+
+    cd $COTS_DIR
+
+    # extract configuration file (goes automatically in etc folder)
+    tar xfz omniORB.cfg.tgz
+    check-status
+
+    if test "$TARGET_PLATFORM" = "gnu"
+    then
+        tar xpzf $OMNI414_FILE > /dev/null
+        OMNI414_DIR=`basename $OMNI414_FILE .tar.gz`
+        # Patch the getline problem
+        for f in $OMNI414_DIR/src/tool/omkdepend/def.h $OMNI414_DIR/src/tool/omkdepend/main.c $OMNI414_DIR/src/tool/omkdepend/parse.c
+        do
+            cat $f | sed -e 's/getline/get_line/g' > $f.tmp
+            mv $f.tmp $f
+        done
+        cd $OMNI414_DIR
+        configure
+        make-install
+        cd $COTS_DIR
+        rm -rf $OMNI414_DIR &
+    fi
+
+    # Do not attempt parallel builds here, as they tend to fail.
+    if test "$TARGET_PLATFORM" = "w32n"
+    then
+        # Extract AdvAPI32.dll"
+        mkdir AdvAPI32-tmp
+        expand.exe $WINSDK_FILE /F AdvAPI32-tmp &> /dev/null
+        mv AdvAPI32-tmp/AdvAPI32_Lib.155AF0AA_37C9_4CFD_B03B_7011DB572B20 lib/advapi32.lib
+        rm -rf AdvAPI32-tmp &
+        check-status
+
+        OMNIORB_TARBALL=$COTS_DIR/$OMNI413_FILE
+        OMNIPYTHON_ZIP=$COTS_DIR/$OMNIPY_FILE
+        OMNIORB_SRCDIR=`basename $OMNIORB_TARBALL .tar.gz`
+        tar xzf $OMNIORB_TARBALL
+        cd $OMNIORB_SRCDIR
+        unzip -n $OMNIPYTHON_ZIP > /dev/null
+        patch -p0 < patches/mingw_omnipython.patch > /dev/null
+        
+        CONFIG_MK=config/config.mk
+        PLATFORM_MK=mk/platforms/x86_win32_mingw.mk
+        MINGW_MK=mk/mingw.mk
+        SRC_DIRMK=src/dir.mk
+        SRCLIB_DIRMK=src/lib/dir.mk
+        LIBOMNIORB_MK=src/lib/omniORB/dir.mk
+        cat $CONFIG_MK | sed -e 's/^#\(.*=.*mingw.*\)$/\1/' > ${CONFIG_MK}.tmp
+        mv ${CONFIG_MK}.tmp $CONFIG_MK
+        cat $LIBOMNIORB_MK | sed -e 's/\(-ComniORB4\)/\1 -DHAS_LongDouble/g' > ${LIBOMNIORB_MK}.tmp
+        mv ${LIBOMNIORB_MK}.tmp $LIBOMNIORB_MK
+        cat $SRCLIB_DIRMK | sed -e 's/rebase.exe.*dll;//g' > ${SRCLIB_DIRMK}.tmp
+        mv ${SRCLIB_DIRMK}.tmp $SRCLIB_DIRMK
+        echo "making (see _make.log)"
+        cp $COTS_DIR/lib/advapi32.lib src/lib/omniORB/connections/
+        (cd src && make export &> _make.log)
+        check-status
+        (cd src/appl && make export &> _make.log)
+        check-status
+
+        mkdir $COTS_DIR/bin/x86_win32
+        cp bin/x86_win32/*.exe $COTS_DIR/bin/x86_win32/
+        cp bin/x86_win32/*.dll $COTS_DIR/bin/x86_win32/
+        cp -r lib/python* $COTS_DIR/lib/
+        for f in `ls lib/x86_win32/*.a`
+        do
+            ranlib $f
+            cp $f $COTS_DIR/lib/
+        done
+        cp -r include/* $COTS_DIR/include/
+        cat $COTS_DIR/include/omniconfig.h | sed -e 's/^\(#endif\)/#define __x86__MAGICNL#define __NT__MAGICNL#define __OSVERSION__ 4MAGICNL#define _WIN32_WINNT_ 0x0400MAGICNLMAGICNL\1/' | perl -p -e 's#MAGICNL#
+#g' > $COTS_DIR/include/omniconfig.h.old
+        cp $COTS_DIR/include/omniconfig.h.old $COTS_DIR/include/omniconfig.h
+
+        # Create interface libraries for the installed dlls
+        echo "creating interface libraries (faked) for installed dlls"
+        cp $COTS_DIR/bin/x86_win32/COS413_rt.dll $COTS_DIR/lib/libCOS4.a &> /dev/null
+        cp $COTS_DIR/bin/x86_win32/omniDynamic413_rt.dll $COTS_DIR/lib/libomniDynamic4.a &> /dev/null
+        cp $COTS_DIR/bin/x86_win32/omniORB413_rt.dll $COTS_DIR/lib/libomniORB4.a &> /dev/null
+        cp $COTS_DIR/bin/x86_win32/omnithread34_rt.dll $COTS_DIR/lib/libomnithread.a &> /dev/null
+
+        cd $COTS_DIR
+        rm -rf $OMNIORB_SRCDIR &
+    fi
+
+    # Do not attempt parallel builds here, as they tend to fail.
+    if test "$TARGET_PLATFORM" = "w32"
+    then
+        # Extract AdvAPI32.dll"
+        $COTS_DIR/bin/cabextract -F AdvAPI32_Lib.155AF0AA_37C9_4CFD_B03B_7011DB572B20 $WINSDK_FILE &> /dev/null
+        mv AdvAPI32_Lib.155AF0AA_37C9_4CFD_B03B_7011DB572B20 lib/advapi32.lib
+        check-status
+
+        OMNIORB_TARBALL=$COTS_DIR/$OMNI413_FILE
+        OMNIPYTHON_ZIP=$COTS_DIR/$OMNIPY_FILE
+        OMNIORB_SRCDIR=`basename $OMNIORB_TARBALL .tar.gz`
+
+        # Build the native utilities:
+        tar xzf $OMNIORB_TARBALL
+        cd $OMNIORB_SRCDIR
+        unzip -n $OMNIPYTHON_ZIP > /dev/null
+        # Patch the getline problem
+        for f in ./src/tool/omkdepend/def.h ./src/tool/omkdepend/main.c ./src/tool/omkdepend/parse.c
+        do
+            cat $f | sed -e 's/getline/get_line/g' > $f.tmp
+            mv $f.tmp $f
+        done
+        echo "configuring (see _config.log)"
+        ./configure --prefix=$COTS_DIR --host=mingw32 &> _config.log
+        check-status
+        echo "making src/tool/omkdepend (see _make.log)"
+        make CC=gcc -C src/tool/omkdepend &> src/tool/omkdepend/_make.log
+        echo "making src/tool/omniidl/cxx/cccp (see _make.log)"
+        make CC=gcc -C src/tool/omniidl/cxx/cccp &> src/tool/omniidl/cxx/cccp/_make.log
+        echo "making src/tool/omniidl/cxx (see _make.log)"
+        make CXX=g++ -C src/tool/omniidl/cxx &> src/tool/omniidl/cxx/_make.log
+
+        echo "installing tool/omkdepend (see _make.log)"
+        (cd src/tool/omkdepend/ && make install &> _make.log)
+        check-status
+        echo "installing tool/omniidl (see _make.log)"
+        (cd src/tool/omniidl/ && make install &> _make.log)
+        check-status
+        echo "installing lib/omniORB/omniidl_be (see _make.log)"
+        (cd src/lib/omniORB/omniidl_be && make install &> _make.log)
+        check-status
+        cd $COTS_DIR
+        rm -r $OMNIORB_SRCDIR
+
+        # Build the cross-compiled libraries
+        tar xzf $OMNIORB_TARBALL
+        cd $OMNIORB_SRCDIR
+        unzip -n $OMNIPYTHON_ZIP > /dev/null
+
+        # Tweak the omniorb distribution for cross-compilation
+        CONFIG_MK=config/config.mk
+        PLATFORM_MK=mk/platforms/x86_win32_mingw.mk
+        MINGW_MK=mk/mingw.mk
+        SRC_DIRMK=src/dir.mk
+        SRCLIB_DIRMK=src/lib/dir.mk
+        LIBOMNIORB_MK=src/lib/omniORB/dir.mk
+        CATIOR_CC=src/appl/utils/catior/catior.cc
+        CONVERTIOR_CC=src/appl/utils/convertior/convertior.cc
+        cat $CATIOR_CC | sed -e 's,^\(// Lists contents of an IOR.\),#include <stdio.h>,' > ${CATIOR_CC}.tmp
+        mv ${CATIOR_CC}.tmp $CATIOR_CC
+        cat $CONVERTIOR_CC | sed -e 's/^\(#include <string.h>\)/\1\n#include <stdio.h>/' > ${CONVERTIOR_CC}.tmp
+        mv ${CONVERTIOR_CC}.tmp $CONVERTIOR_CC
+        cat $CONFIG_MK | sed -e 's/^#\(.*=.*mingw.*\)$/\1/' > ${CONFIG_MK}.tmp
+        mv ${CONFIG_MK}.tmp $CONFIG_MK
+        cat $MINGW_MK | sed -e 's/gcc/mingw32-gcc/g' -e 's/g++/mingw32-g++/g' > ${MINGW_MK}.tmp
+        mv ${MINGW_MK}.tmp $MINGW_MK
+        cat $SRC_DIRMK | sed -e 's/^\(SUBDIRS.*tool\)$/# \1/g' > ${SRC_DIRMK}.tmp
+        mv ${SRC_DIRMK}.tmp $SRC_DIRMK
+        cat $PLATFORM_MK | sed -e 's/^PYTHON = .*$/PYTHON = python/g' > ${PLATFORM_MK}.tmp
+        mv ${PLATFORM_MK}.tmp $PLATFORM_MK
+        cat $LIBOMNIORB_MK | sed -e 's/\(-ComniORB4\)/\1 -DHAS_LongDouble/g' > ${LIBOMNIORB_MK}.tmp
+        mv ${LIBOMNIORB_MK}.tmp $LIBOMNIORB_MK
+        cat $SRCLIB_DIRMK | sed -e 's/rebase.exe.*dll;//g' > ${SRCLIB_DIRMK}.tmp
+        mv ${SRCLIB_DIRMK}.tmp $SRCLIB_DIRMK
+        ln -s $COTS_DIR/bin/omniidl bin/x86_win32/omniidl
+        ln -s $COTS_DIR/bin/omkdepend bin/x86_win32/omkdepend
+        cp $COTS_DIR/lib/advapi32.lib src/lib/omniORB/connections/
+        echo "making (see _make.log)"
+        (cd src && make export &> _make.log)
+        check-status
+        (cd src/appl && make export &> _make.log)
+        check-status
+
+        cp bin/x86_win32/*.exe $COTS_DIR/bin/
+        cp bin/x86_win32/*.dll $COTS_DIR/bin/
+        for f in `ls lib/x86_win32/*.a`
+        do
+            $COTS_DIR/bin/mingw32-ranlib $f
+            cp $f $COTS_DIR/lib/
+        done
+        cp -r include/* $COTS_DIR/include/
+        cat $COTS_DIR/include/omniconfig.h | sed -e 's/^\(#endif\)/#define __x86__\n#define __NT__\n#define __OSVERSION__ 4\n#define _WIN32_WINNT_ 0x0400\n\n\1/' > $COTS_DIR/include/omniconfig.h.old
+        cp $COTS_DIR/include/omniconfig.h.old $COTS_DIR/include/omniconfig.h
+
+        # Create interface libraries for the installed dlls
+        echo "creating interface libraries (faked) for installed dlls"
+        cp $COTS_DIR/bin/COS413_rt.dll $COTS_DIR/lib/libCOS4.a &> /dev/null
+        cp $COTS_DIR/bin/omniDynamic413_rt.dll $COTS_DIR/lib/libomniDynamic4.a &> /dev/null
+        cp $COTS_DIR/bin/omniORB413_rt.dll $COTS_DIR/lib/libomniORB4.a &> /dev/null
+        cp $COTS_DIR/bin/omnithread34_rt.dll $COTS_DIR/lib/libomnithread.a &> /dev/null
+
+        cd $COTS_DIR
+        rm -rf $OMNIORB_SRCDIR &
+    fi
+}
+
+function setup-regex
+{
+    #
+    # don't install for SLES 11 as we use operating system installed versions
+    #
+    if test "$TARGET_PLATFORM" = "w32" -a "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup regex"
+        echo "------------------------------"
+        echo " "
+
+        bunzip2 --keep $REGEX_FILE > /dev/null
+        tar xf `basename $REGEX_FILE .bz2`
+        rm -f  `basename $REGEX_FILE .bz2`
+    fi
+}
+
+function setup-curses
+{
+    cd $COTS_DIR
+
+    if test "$TARGET_PLATFORM" = "w32"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup pdcurses"
+        echo "------------------------------"
+        echo " "
+
+        unzip $PDCUW32_FILE > /dev/null
+
+        chmod 644 curses.h panel.h
+        mv -f curses.h include/
+        mv -f panel.h include/
+        cp -f include/curses.h include/c++/3.4.5/
+        cp -f include/panel.h include/c++/3.4.5/
+
+        chmod 755 pdcurses.dll
+        mv -f pdcurses.dll bin/
+
+        chmod 644 pdcurses.lib
+        mv -f pdcurses.lib lib/
+        cp -f lib/pdcurses.lib lib/libpdcurses.a
+        cp -f lib/pdcurses.lib lib/gcc/mingw32/3.4.5/
+        cp -f lib/libpdcurses.a lib/gcc/mingw32/3.4.5/
+    fi
+    if test "$TARGET_PLATFORM" = "gnu"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup ncurses"
+        echo "------------------------------"
+        echo " "
+
+        tar xfz $NCURSES_FILE
+        NCURSES_DIR=`basename $NCURSES_FILE .tar.gz`
+        cd $NCURSES_DIR
+        configure $TARGET_PLATFORM --with-shared --without-develop --without-ada
+
+        echo "making (see _make.log)"
+        make $PARALLEL_FLAGS &> _make.log
+        check-status
+        echo "installing (see _install.log)"
+        make install &> _install.log
+        check-status
+        
+        cd $COTS_DIR
+        rm -rf $NCURSES_DIR &
+    fi
+
+    cd $COTS_DIR
+}
+
+function setup-editline
+{
+    echo " "
+    echo "------------------------------"
+    echo "Setup Editline"
+    echo "------------------------------"
+    echo " "
+
+    if test "$TARGET_PLATFORM" = "w32" -o "$TARGET_PLATFORM" = "w32n"
+    then
+        echo "***********************************************************************"
+        echo "***"
+        echo "*** The EditLine library does not support Windows yet."
+        echo "***"
+        echo "***********************************************************************"
+        return
+    fi
+
+    cd $COTS_DIR
+
+    tar xzf $EDITLINE_FILE
+    EDITLINE_DIR=`basename $EDITLINE_FILE .tar.gz`
+    cd $EDITLINE_DIR
+    configure $TARGET_PLATFORM
+    make-install
+    cd $COTS_DIR
+    rm -rf $EDITLINE_DIR &
+}
+
+function setup-gdb
+{
+    #
+    # don't install for SLES 11 as we use operating system installed versions
+    #
+    if test "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        echo " "
+        echo "------------------------------"
+        echo "Setup GDB"
+        echo "------------------------------"
+        echo " "
+
+        cd $COTS_DIR
+        tar xfz $GDB_FILE
+        GDB_DIR=`basename $GDB_FILE .tar.gz`
+        cd $GDB_DIR
+        configure $TARGET_PLATFORM --disable-werror
+
+        # disable parallel build, because gdb build performs worse
+        # when trying to run it in parallel.
+        PARALLEL_FLAGS="" make-install
+
+        cd $COTS_DIR
+        rm -rf $GDB_DIR &
+    fi
+}
+
+function setup-wine
+{
+    if test "$TARGET_PLATFORM" != "w32"
+    then
+        return
+    fi
+
+    echo " "
+    echo "------------------------------"
+    echo "Setup Wine"
+    echo "------------------------------"
+    echo " "
+
+    cd $COTS_DIR
+
+    # Check whether wine is already installed
+    # and whether its version is at least 1.0
+    which wine &> /dev/null
+    if test "x$?" == "x0"
+    then
+        WINEVERS=`wine --version`
+        if test "x${WINEVERS:0:6}" = "xwine-1"
+        then
+            echo "An installation of wine 1.x is already present ==> OK"
+            return
+        fi
+    fi
+
+    # If wine is not installed yet, unpack the provided version from the RPM.
+    rpm2cpio $WINE_FILE | cpio -idmv &> /dev/null
+    mkdir -p bin lib share
+    mv usr/bin/* bin/
+    mv usr/lib/* lib/
+    mv usr/share/wine share/
+    rm -rf usr
+}
+
+########################################################################
+#                             Strip functions                          #
+########################################################################
+
+
+# Remove COTS archive files, expanded source code and intermediate files
+# The result is a COTS folder suitable for a GNU/Linux development environment
+function strip_for_dev
+{
+    cd $COTS_DIR
+
+    rm -f \
+    *.bin \
+    *.cab \
+    *.bz2 \
+    *.exe \
+    *.gz \
+    *.jar \
+    *.log \
+    *.tgz \
+    *.rpm \
+    *.zip \
+    build-cross-compiler \
+    MD5SUM*
+
+    for item in `ls -1`
+    do
+        if test -d $item  \
+                -a $item != "bin" \
+                -a $item != "etc" \
+                -a $item != "lib" \
+                -a $item != "lib64" \
+                -a $item != "include" \
+                -a $item != "info" \
+                -a $item != "man" \
+                -a $item != "share" \
+                -a $item != "eclipse" \
+                -a $item != "jdk" \
+                -a $item != "jre" \
+                -a $item != "jscorba" \
+                -a $item != "junit4.7" \
+                -a $item != "rhino" \
+                -a $item != "rhino1_7R2" \
+                -a $item != "xerces-2_6_2"
+        then
+            rm -rf $item
+        fi
+    done
+
+    # Remove Rhino source code and examples
+    cd $COTS_DIR/rhino
+    rm -rf \
+        apiClasses.properties \
+        build.xml \
+        docs \
+        examples \
+        src \
+        toolsrc
+
+    # Remove jscorba source code and examples
+    cd $COTS_DIR/jscorba
+    rm -rf \
+        build.properties \
+        build.xml \
+        classes \
+        examples \
+        org \
+        INSTALL.txt \
+        Javascript.idl \
+        Makefile \
+        README.txt
+
+    cd $COTS_DIR
+}
+
+# Remove all COTS not used by the SIMSAT Kernel
+function strip_for_kernel
+{
+    cd $COTS_DIR
+
+    strip_for_dev
+
+    # Remove links
+    rm bin/eclipse
+
+    # Remove files and folders
+    rm -rf \
+        apache-ant-1.6.5 \
+        eclipse \
+        junit4.7 \
+        xerces-2_6_2
+}
+
+# Remove all COTS not needed by the SIMSAT Kernel on gnu.
+# It also replace links with actual directories.
+function strip_for_kernel_gnu
+{
+    cd $COTS_DIR
+
+    strip_for_kernel
+
+    # Replace soft links with real file copies
+    dereference-soft-links $COTS_DIR/bin
+    dereference-soft-links $COTS_DIR/etc
+    dereference-soft-links $COTS_DIR/lib
+
+    # Remove file and links
+    rm  corba \
+        cots-environment \
+        etc/ant-bootstrap.jar \
+        rhino/jscorba \
+        rhino
+
+    # Move versioned folders to version-free folders
+    mv jdk/jre jre
+    mv rhino1_7R2 rhino
+
+    # Remove files and folders
+    rm -rf \
+        jdk \
+        man \
+        info \
+        share
+
+    # Remove unneded file and folders from bin/
+    cd $COTS_DIR/bin
+    rm -rf \
+        aclocal \
+        aclocal-1.10 \
+        ant \
+        ant.bat \
+        ant.cmd \
+        antenv.cmd \
+        antRun \
+        antRun.bat \
+        antRun.pl \
+        autoconf \
+        autoheader \
+        autom4te \
+        automake \
+        automake-1.10 \
+        autoreconf \
+        autoscan \
+        autoupdate \
+        cppunit-config \
+        complete-ant-cmd.pl \
+        DllPlugInTester \
+        envset.cmd \
+        ifnames \
+        lcp.bat \
+        libtool \
+        libtoolize \
+        m4 \
+        mingw32* \
+        omkdepend \
+        omnicpp \
+        omniidl \
+        runant.pl \
+        runant.py \
+        runrc.cmd \
+        simple
+
+    # Remove unneded file and folders from lib/
+    cd $COTS_DIR/lib
+    rm -rf \
+        *.a \
+        *.la \
+        ant-antlr.jar \
+        ant-apache-bcel.jar \
+        ant-apache-bsf.jar \
+        ant-apache-log4j.jar \
+        ant-apache-oro.jar \
+        ant-apache-regexp.jar \
+        ant-apache-resolver.jar \
+        ant-commons-logging.jar \
+        ant-commons-net.jar \
+        ant-icontract.jar \
+        ant-jai.jar \
+        ant.jar \
+        ant-javamail.jar \
+        ant-jdepend.jar \
+        ant-jmf.jar \
+        ant-jsch.jar \
+        ant-junit.jar \
+        ant-launcher.jar \
+        ant-netrexx.jar \
+        ant-nodeps.jar \
+        ant-starteam.jar \
+        ant-stylebook.jar \
+        ant-swing.jar \
+        ant-trax.jar \
+        ant-vaj.jar \
+        ant-weblogic.jar \
+        ant-xalan1.jar \
+        ant-xslp.jar \
+        gcc \
+        README
+
+    # Finally, remove the setup-cots script itself.
+    cd $COTS_DIR
+    rm setup-cots
+}
+
+
+# Remove all COTS not needed by the SIMSAT Kernel on w32.
+# It also replace links with actual directories.
+function strip_for_kernel_w32
+{
+    cd $COTS_DIR
+
+    strip_for_kernel
+
+    # Replace soft links with real file copies
+    dereference-soft-links $COTS_DIR/bin
+    dereference-soft-links $COTS_DIR/etc
+    dereference-soft-links $COTS_DIR/lib
+
+    # Remove file and links
+    rm \
+        corba \
+        cots-environment \
+        etc/ant-bootstrap.jar \
+        rhino/jscorba \
+        rhino
+
+    # Remove files and folders
+    rm -rf \
+        jdk \
+        lib64 \
+        man \
+        info \
+        share
+
+    # Move versioned folders to version-free folders
+    mv rhino1_7R2 rhino
+
+    # Remove unneded file and folders from bin/
+    cd $COTS_DIR/bin
+    rm -rf \
+        aclocal \
+        aclocal-1.10 \
+        ant \
+        ant.bat \
+        ant.cmd \
+        antenv.cmd \
+        antRun \
+        antRun.bat \
+        antRun.pl \
+        autoconf \
+        autoheader \
+        autom4te \
+        automake \
+        automake-1.10 \
+        autoreconf \
+        autoscan \
+        autoupdate \
+        cppunit-config \
+        complete-ant-cmd.pl \
+        DllPlugInTester \
+        envset.cmd \
+        ifnames \
+        lcp.bat \
+        libtool \
+        libtoolize \
+        m4 \
+        mingw32* \
+        omkdepend \
+        omnicpp \
+        omniidl \
+        runant.pl \
+        runant.py \
+        runrc.cmd \
+        simple \
+        wine*
+
+    # Remove unneded file and folders from lib/
+    cd $COTS_DIR/lib
+    rm -rf \
+        *.a \
+        *.la \
+        *.so* \
+        ant-antlr.jar \
+        ant-apache-bcel.jar \
+        ant-apache-bsf.jar \
+        ant-apache-log4j.jar \
+        ant-apache-oro.jar \
+        ant-apache-regexp.jar \
+        ant-apache-resolver.jar \
+        ant-commons-logging.jar \
+        ant-commons-net.jar \
+        ant-icontract.jar \
+        ant-jai.jar \
+        ant.jar \
+        ant-javamail.jar \
+        ant-jdepend.jar \
+        ant-jmf.jar \
+        ant-jsch.jar \
+        ant-junit.jar \
+        ant-launcher.jar \
+        ant-netrexx.jar \
+        ant-nodeps.jar \
+        ant-starteam.jar \
+        ant-stylebook.jar \
+        ant-swing.jar \
+        ant-trax.jar \
+        ant-vaj.jar \
+        ant-weblogic.jar \
+        ant-xalan1.jar \
+        ant-xslp.jar \
+        gcc \
+        README \
+        wine
+
+    # Finally, remove the setup-cots script itself.
+    cd $COTS_DIR
+    rm setup-cots
+}
+
+########################################################################
+#                           Check needed tools                         #
+########################################################################
+
+# Check the presence of needed tools that must be installed at system level
+function check-tools
+{
+    echo "Checking the availability of needed tools"
+
+    #
+    #          TOOL                    PLATFORM  COMMENT
+    #
+    
+    # Tools needed on all platforms
+    check-tool bunzip2                 all
+    check-tool gcc                     all
+    check-tool make                    all
+    check-tool g++                     all
+    check-tool md5sum                  all
+    check-tool perl                    all     # needed for automake
+    check-tool sed                     all
+    check-tool tar                     all
+    check-tool unzip                   all
+
+    # Tools needed on w32 but not everywhere
+    check-tool bison                   w32     # to build binutils for the cross-compiler
+    check-tool cpio                    w32     # to extract RPM packages
+    check-tool dos2unix                w32     # to remove \r in files of dlfcn
+    check-tool gmake                   w32     # needed for xercer-x
+    check-tool rpm2cpio                w32     # to extract files from Wine RPM package
+    check-tool wget                    w32     # to retrieve the COTS not present locally
+
+    # Tools needed on gnu but not everywhere
+    check-tool gmake                   gnu     # needed for xercer-x
+    check-tool wget                    gnu     # to retrieve the COTS not present locally
+
+    if test "$TARGET_OPERATING_SYSTEM" = "sles11"
+    then
+        check-tool python              gnu
+        check-tool ant                 gnu
+        check-tool gdb                 gnu
+    fi    
+}
+
+########################################################################
+#                      Check or download COTS                          #
+########################################################################
+
+# Determine the absolute path of the location of this script.
+function set-cots-repository
+{
+    # There are three possible cases:
+    #
+    # a) The script was called using an absolute path, like:
+    #     
+    #    $ /foo/bar/simsat-install/bin/SimsatDaemon.sh
+    #
+    #    In this case SCRIPT_PATH = $0
+    #
+    # b) The script was called using a relative path, like:
+    #
+    #    $ ./SimsatDaemon.sh
+    #    $ ../simsat-install/SimsatDaemon.sh
+    #
+    #    In this case SCRIPT_PATH = `pwd`/$0
+    #
+    # c) The script was called using a basename, therefore using the PATH
+    #    mechanism to locate this file, like:
+    #
+    #    $ SimsatDaemon.sh
+    #
+    #    In this case SCRIPT_PATH = $0
+
+    echo " "
+
+    if test "/" = "${0:0:1}" -o `basename $0` = "$0"; then
+        # Case a and c
+        SCRIPT_PATH=$0
+    else
+        # Case b
+        SCRIPT_PATH=`pwd`/$0
+    fi
+    
+    SCRIPT_PATH=`dirname $SCRIPT_PATH` 
+
+    # if the COTSREPO variable was setup by the user, then return
+    if test "x$COTSREPO" != "x"
+    then
+        echo "COTS files are being copied from $COTSREPO and setup here in `pwd`"
+        return
+    fi
+        
+    # if the current location is empty, assume SCRIPT_PATH to be
+    # the place where needed COTS files can be found
+    if test `ls -1 | wc -l` -eq "0" -a "x$COTSREPO" = "x"
+    then
+        COTSREPO=$SCRIPT_PATH
+        COTSREPO=`cd $COTSREPO && pwd`
+        echo "COTS files are being copied from $COTSREPO and setup here in `pwd`"
+        cp -f $COTSREPO/setup-cots $PWD/
+        cp -f $COTSREPO/cots-environment $PWD/
+        cp -f $COTSREPO/corba $PWD/
+        return
+    fi
+    
+    echo "COTS files are being taken from `pwd` or downloaded from the Internet (if available)"    
+}
+
+# Download COTS depending on the current target platform
+function check-cots-packages
+{
+    #check-cots <COTS file> <URL> <TARGET_PLATFORM>
+    #<URL> is either a valid URL, or X if no URL is available
+    #<TARGET_PLATFORM> is either all, gnu or w32
+
+    ################################################################
+    # Check of the COTS needed for the currently selected platform #
+    #################################################################
+
+    #
+    #          FILE           URL           PLATFORM
+    #
+
+    #
+    # COTS needed only for GNU/Linux, but not for all
+    #
+    check-cots $M4_FILE       $M4_URL       gnu
+    check-cots $ECLCPPG_FILE  $ECLCPPG_URL  gnu
+    check-cots $ECLSDKG_FILE  $ECLSDKG_URL  gnu    
+    check-cots $JDKGNU_FILE   $JDKGNU_URL   gnu
+    check-cots $NCURSES_FILE  $NCURSES_URL  gnu # needed by libeditline
+    check-cots $OMNI414_FILE  $OMNI414_URL  gnu
+
+    #
+    # don't check for SLES 11 as we use operating system installed versions
+    #
+    if test "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        check-cots $LIBXML2_FILE  $LIBXML2_URL  gnu
+    fi
+
+    #
+    # COTS needed only for win32, but not for all
+    #
+    check-cots $CABXTRCT_FILE $CABXTRCT_URL w32
+    check-cots $DLFCN_FILE    $DLFCN_URL    w32
+    check-cots $ECLCPPW_FILE  $ECLCPPW_URL  w32
+    check-cots $ECLSDKW_FILE  $ECLSDKW_URL  w32
+    check-cots $JDKGNU_FILE   $JDKGNU_URL   w32
+    check-cots $JREW32_FILE   $JREW32_URL   w32
+    check-cots $LIBXML2W_FILE $LIBXML2W_URL w32
+    check-cots $PDCUW32_FILE  $PDCUW32_URL  w32 # needed by libeditline
+    check-cots $M4_FILE       $M4_URL       w32
+    check-cots $OMNI413_FILE  $OMNI413_URL  w32
+    check-cots $OMNIPY_FILE   $OMNIPY_URL   w32
+    check-cots $XCW280_FILE   $XCW280_URL   w32
+    check-cots $WINSDK_FILE   $WINSDK_URL   w32
+    check-cots $LIBIC_FILE    $LIBIC_URL    w32 # needed by libxml2
+    check-cots $LIBICBIN_FILE $LIBICBIN_URL w32 # needed by libxml2
+    check-cots $REGEX_FILE    $REGEX_URL    w32 # needed by libeditline
+    check-cots $WINE_FILE     $WINE_URL     w32
+    check-cots $ZLIB_FILE     $ZLIB_URL     w32 # needed by libxml2
+
+    #
+    # COTS needed only for win32 native with msys, but not for all
+    #
+    check-cots $DLFCN_FILE    $DLFCN_URL    w32n
+    check-cots $ECLCPPW_FILE  $ECLCPPW_URL  w32n
+    check-cots $JDKW32N_FILE  $JDKW32N_URL  w32n
+    check-cots $LIBXML2W_FILE $LIBXML2W_URL w32n
+    check-cots $PDCUW32_FILE  $PDCUW32_URL  w32n # needed by libeditline
+    check-cots $OMNI413_FILE  $OMNI413_URL  w32n
+    check-cots $OMNIPY_FILE   $OMNIPY_URL   w32n
+    check-cots $XCW280_FILE   $XCW280_URL   w32n
+    check-cots $WINSDK_FILE   $WINSDK_URL   w32n
+    check-cots $LIBIC_FILE    $LIBIC_URL    w32n # needed by libxml2
+    check-cots $LIBICBIN_FILE $LIBICBIN_URL w32n # needed by libxml2
+    check-cots $REGEX_FILE    $REGEX_URL    w32n # needed by libeditline
+    check-cots $ZLIB_FILE     $ZLIB_URL     w32n # needed by libxml2
+
+    #
+    # Cross-compiler for win32
+    #
+    check-cots $BINUTILS_FILE $BINUTILS_URL w32
+    check-cots $GCC_FILE      $GCC_URL      w32
+    check-cots $GPP_FILE      $GPP_URL      w32
+    check-cots $FORTRAN_FILE  $FORTRAN_URL  w32
+    check-cots $MINGWRTM_FILE $MINGWRTM_URL w32
+    check-cots $W32API_FILE   $W32API_URL   w32
+
+    #
+    # COTS needed in all cases
+    #
+    check-cots $AUTOCONF_FILE $AUTOCONF_URL all
+    check-cots $AUTOMAKE_FILE $AUTOMAKE_URL all
+    check-cots $EMMA_FILE     $EMMA_URL  all
+    check-cots $CHECKSTYLE_FILE     $CHECKSTYLE_URL  all
+    check-cots $ECLEMMA_FILE  $ECLEMMA_URL  all
+    check-cots $ECLEMMAEQNX_FILE  $ECLEMMAEQNX_URL  all
+    check-cots $ECLDP_FILE    $ECLDP_URL    all
+    check-cots $ECLTF_FILE    $ECLTF_URL    all
+    check-cots $EDITLINE_FILE $EDITLINE_URL all
+    check-cots $EMFXSD_FILE   $EMFXSD_URL   all
+    check-cots $GEFSDK_FILE   $GEFSDK_URL   all
+    check-cots $IZPACK_FILE   $IZPACK_URL   all
+    check-cots $JUNIT_FILE    $JUNIT_URL    all
+    check-cots $LIBTOOL_FILE  $LIBTOOL_URL  all
+    check-cots $RHINO_FILE    $RHINO_URL    all
+    check-cots $JSCORBA_FILE  $JSCORBA_URL  all
+    check-cots $JCOMMON_FILE  $JCOMMON_URL  all
+    check-cots $JFREECHR_FILE $JFREECHR_URL all
+#    check-cots $JFACEEXT_FILE $JFACEEXT_URL all
+#    check-cots $JFCHREXT_FILE $JFCHREXT_URL all
+    svn export $JFACEEXT_URL
+    svn export $JFCHREXT_URL
+    chmod +x $JFACEEXT_FILE
+    chmod +x $JFCHREXT_FILE
+
+    #
+    # don't check for SLES 11 as we use operating system installed versions
+    #
+    CPPUNIT_FILE=$CPPUNIT_1_12_1_FILE
+    CPPUNIT_URL=$CPPUNIT_1_12_1_URL
+    if test "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        check-cots $APACHE_FILE   $APACHE_URL   all
+        check-cots $GDB_FILE      $GDB_URL      all
+        check-cots $PYTHON_FILE   $PYTHON_URL   all # needed to compile OmniORB
+        check-cots $XERCESJ_FILE  $XERCESJ_URL  all
+        CPPUNIT_FILE=$CPPUNIT_1_10_2_FILE
+        CPPUNIT_URL=$CPPUNIT_1_10_2_URL
+    fi
+
+    check-cots $CPPUNIT_FILE  $CPPUNIT_URL  all
+
+    # Special files
+    if test "x$TARGET_OPERATING_SYSTEM" = "xsles11"
+    then
+        check-cots MD5SUMS.gnu.sles11  X   gnu
+    fi
+    check-cots build-cross-compiler    X   w32
+    check-cots MD5SUMS.w32             X   w32
+    check-cots MD5SUMS.w32n            X   w32n
+    check-cots omniORB.cfg.tgz         X   all
+}
+
+# Compute the checksum of needed files
+function check-md5sums
+{
+    echo " "
+    echo "Checking integrity of files ..."
+
+    FAILURES=""
+
+    if test "$TARGET_PLATFORM" = "gnu"
+    then
+        if test "x$TARGET_OPERATING_SYSTEM" = "xsles11"
+        then
+            if test ! -f $COTS_DIR/MD5SUMS.gnu.sles11
+            then
+                echo "File $COTS_DIR/MD5SUMS.gnu.sles11 is missing."
+                exit
+            fi
+        fi
+    else
+        if test ! -f $COTS_DIR/MD5SUMS.$TARGET_PLATFORM
+        then
+            echo "File MD5SUMS.$TARGET_PLATFORM is missing."
+            exit
+        fi
+    fi
+
+    if test "$TARGET_PLATFORM" = "gnu"
+    then
+        if test "x$TARGET_OPERATING_SYSTEM" = "xsles11"
+        then
+            FAILURES=`md5sum -c $COTS_DIR/MD5SUMS.gnu.sles11 | tee /dev/null | grep FAILED`
+        fi
+    fi
+
+    if test "$TARGET_PLATFORM" = "mac"
+    then
+        FAILURES=`md5sum -c $COTS_DIR/MD5SUMS.mac | tee /dev/null | grep FAILED`
+    fi
+
+    if test "$TARGET_PLATFORM" = "w32"
+    then
+        FAILURES=`md5sum -c $COTS_DIR/MD5SUMS.w32 | tee /dev/null | grep FAILED`
+    fi
+
+    if test "$TARGET_PLATFORM" = "w32n"
+    then
+        # The MD5SUMS.w32n file cannot contain carriage return
+        # characters at the end
+        cat $COTS_DIR/MD5SUMS.w32n | sed -n -e 'p' > $COTS_DIR/MD5SUMS.w32n.tmp
+        mv $COTS_DIR/MD5SUMS.w32n.tmp $COTS_DIR/MD5SUMS.w32n
+        FAILURES=`md5sum -c $COTS_DIR/MD5SUMS.w32n | tee /dev/null | grep FAILED`
+    fi
+
+    if test "x$FAILURES" != "x"
+    then
+        echo $FAILURES
+        exit
+    fi
+
+    echo "Integrity of files successfully verified."
+}
+
+# copies and/or checks the COTS files in the current directory
+function get-cots-files
+{
+    set-cots-repository
+    check-cots-packages
+    check-md5sums
+}
+
+########################################################################
+#                     Read parameters and switches                     #
+########################################################################
+
+if test "x$1" = "x--help"
+then
+    echo " "
+    echo "Usage: $0 [switch]"
+    echo " "
+    echo "This script downloads and sets up the COTS products for Simulus 5"
+    echo "It is meant to be run on GNU/Linux"
+    echo "When invoked with no switches it downloads and builds the COTS"
+    echo "for the host GNU system (x86 or x86_64)."
+    echo "The following COTS are not installed on SLES 11, they are provided"
+    echo "by the versions installed on the Operating System:"
+    echo " - apache ant"
+    echo " - cpp unit"
+    echo " - gdb"
+    echo " - libXml2"
+    echo " - python"
+    echo " - readline"
+    echo " - regex"
+    echo " - xerces-c"
+    echo " - xerces-j"
+    echo " "
+    echo "Other platforms are supported through cross-compilation (see switches)"
+    echo " "
+    echo "switches:"
+    echo "  clean      Remove temporary files, for a new clean build"
+    echo "  download   Only download missing packages, without further processing"
+    echo "  mac        Triggers cross-compilation of COTS for MacOS-X on Intel x86"
+    echo "  strip-dev  Removes temporary files and packages, for making a COTS distribution"
+    echo "             to be used on GNU/Linux development environment"
+    echo "  strip-kdev Like 'strip-dev' but removes also COTS not needed by the SIMSAT Kernel"
+    echo "  dist-kw32  Prepare a COTS distribution for supporting the SIMSAT"
+    echo "             Kernel runtime operation on Windows."
+    echo "  dist-kgnu  Prepare a COTS distribution for supporting the SIMSAT"
+    echo "             Kernel runtime operation on GNU/Linux."
+    echo "  w32        Triggers cross-compilation of COTS for Windows on Intel x86"
+    echo "  w32n       Compile the COTS for msys native"
+    echo " "
+    echo "If the environment variable COTSREPO is defined and points to a valid"
+    echo "FTP/HTTP site, or a directory, COTS files will be taken from there."
+    echo "Here is an example on how to invoke with a COTSREPO"
+    echo " "
+    echo "> COTSREPO=ftp://ftp.myserver.com/repo ./setup"
+    echo "> COTSREPO=http://myserver.com/repo ./setup"
+    echo "> COTSREPO=/path/repo ./setup"
+    echo " "
+    exit
+fi
+
+if test "x$1" = "x--version"
+then
+    echo "setup-cots $Revision: 1.7 $foo"
+    echo "Copyright 2006-2009 ESA (www.esa.int)"
+    echo " "
+    exit
+fi
+
+#
+# This switch triggers cross-compilation of COTS for win32 and the
+# unpacking of win32 specific COTS (e.g. JRE for w32 in plce of
+# that for gnu)
+#
+export TARGET_PLATFORM=gnu
+
+if test "x$1" = "xw32" -o "x$2" = "xw32" -o "x$3" = "xw32"
+then
+    export TARGET_PLATFORM=w32
+fi
+
+if test "x$1" = "xw32n" -o "x$2" = "xw32n" -o "x$3" = "xw32n"
+then
+    export TARGET_PLATFORM=w32n
+fi
+
+if test "x$1" = "xmac" -o "x$2" = "xmac" -o "x$3" = "xmac"
+then
+    export TARGET_PLATFORM=mac
+    echo " "
+    echo "MacOS-X is not supported yet."
+    echo "You can help supporting it by improving this script and sending your"
+    echo "patch to Nicola Di Nisio <nin@terma.com>"
+    echo " "
+    exit
+fi
+
+# if we are installing on SLES 11 we do not install all of the COTS,
+# and we use the default operating system installed software
+export TARGET_OPERATING_SYSTEM=""
+
+if test "x$TARGET_PLATFORM" = "xgnu"
+then
+    if [ -r /etc/SuSE-release ];
+    then
+        if [ "`cat /etc/SuSE-release | grep "VERSION = 11"`" != "" -a "`cat /etc/SuSE-release | grep "SUSE Linux Enterprise Server"`" != "" ];
+        then
+            echo "Target Operating System: SUSE Linux Enterprise Server 11"
+            export TARGET_OPERATING_SYSTEM=sles11
+        fi
+    fi
+fi
+
+#
+# Only download missing packages, without further processing
+#
+if test "x$1" = "xdownload" -o "x$2" = "xdownload" -o "x$3" = "xdownload"
+then
+    get-cots-files
+    exit
+fi
+
+#
+# Clean the COTS directory from derived files
+#
+if test "x$1" = "xclean"
+then
+    rm -f rhino
+    for item in `ls -1`
+    do
+        if test -d $item -a $item != "CVS"
+        then
+            rm -rf $item
+        fi
+    done
+    exit
+fi
+
+#
+# Strip the COTS directory from temporary files and packages
+#
+if test "x$1" = "xstrip-dev"
+then
+    strip_for_dev
+    exit
+fi
+
+#
+# Strip the COTS directory from temporary files and packages, leaving
+# only those needed for running and compiling the SIMSAT Kernel
+#
+if test "x$1" = "xstrip-kdev"
+then
+    strip_for_kernel
+    exit
+fi
+
+#
+# Strip the COTS directory from temporary files and packages, leaving
+# only those needed for running the SIMSAT kernel on GNU/Linux
+#
+if test "x$1" = "xdist-kgnu"
+then
+    strip_for_kernel_gnu
+    exit
+fi
+
+#
+# Strip the COTS directory from temporary files and packages, leaving
+# only those needed for running the SIMSAT kernel on Windows
+#
+if test "x$1" = "xdist-kw32"
+then
+    strip_for_kernel_w32
+    exit
+fi
+
+
+########################################################################
+#                                 Main                                 #
+########################################################################
+
+check-tools
+get-cots-files
+optimise-on-current-hardware
+
+mkdir -p $COTS_DIR/bin $COTS_DIR/etc $COTS_DIR/lib
+
+START_DATE=`date`
+
+setup-wine
+setup-autotools
+setup-cabextract
+
+#
+# Java based COTS
+#
+
+setup-java
+setup-ant
+setup-emma
+
+# Eclipse and additional plugins
+setup-eclipse-with-cdt
+setup-eclipse-test-framework
+setup-emf-xsd
+setup-gef
+setup-checkstyle
+setup-eclemma
+setup-eclemma-for-equinox
+setup-eclipse-delta-pack
+setup-eclipse-final # must be executed after all plugins have been installed
+
+setup-xerces-j
+setup-junit
+
+setup-rhino
+setup-jscorba
+setup-IzPack
+
+setup-jcommon
+setup-jfreechart
+
+#
+# C/C++ based COTS
+#
+
+setup-python
+setup-cross-compiler
+setup-dlfcn
+setup-libiconv
+setup-zlib
+setup-libxml2
+setup-cppunit
+setup-xerces-c
+setup-omniORB
+setup-regex    # needed to compile editline and readline for w32
+setup-curses   # needed to compile editline and readline for w32
+setup-editline
+setup-gdb
+
+END_DATE=`date`
+
+echo "Setup started   at $START_DATE"
+echo "Setup completed at $END_DATE"
+echo " "
+
+# Create VERSION file
+cd $COTS_DIR
+./setup-cots --version > VERSION
+
+
+## Creating soft links to match internal ESOC folders structure
+echo "Creating Links ... "
+    ln -s jcommon-1.0.13 jcommon
+    ln -s jfreechart-1.0.10 jfreechart
+    mkdir jfreechart-extensions
+    mkdir jface-extensions
+    ln -s ../jfreechart-extensions-1.0.0.jar jfreechart-extensions/jfreechart-extensions-1.0.0.jar
+    ln -s ../jface-extensions-1.0.0.jar jface-extensions/jface-extensions-1.0.0.jar
+echo "Creating Links Completed "
+echo " "
+
+
+###########
+# History #
+###########
+
+# $Log: not supported by cvs2svn $
+# Revision 1.9  2011-04-13 18:19:22  jco
+# SDK updated to 6u22 and eclipse changed to the x86_64 bits version.
+#
+# Revision 1.8  2011-04-11 14:45:42  jco
+# Rename the getline function in the omniorb sources to get_line in
+# order to avoid a clash with recent versions of libc and mingw.
+#
+# Revision 1.7  2011-02-03 17:23:01  stp
+# Upgraded to JRE v6u23 for Windows.
+#
+# Revision 1.6  2011-02-01 16:14:30  stp
+# Updated URLs.
+#
+# Revision 1.5  2011-01-28 14:33:50  stp
+# Fixed URLs.
+#
+# Revision 1.4  2011-01-28 13:11:01  stp
+# Introduced setup-cabextract(); changed setup-wine() to install Wine irrespective of the Linux variant (simulus5#26).
+#
+# Revision 1.3  2011-01-27 16:01:56  stp
+# Cleaned up script.
+#
+# Revision 1.2  2011-01-26 17:03:09  stp
+# Removed termcap COTS.
+#
+# Revision 1.1.1.1  2010-11-30 15:59:21  stp
+# Imported sources.
+#
