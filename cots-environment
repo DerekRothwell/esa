@@ -1,0 +1,115 @@
+# -*- mode: sh -*-
+
+########################################################################
+#
+# Copyright (C) 2009 ESOC, ESA (www.esa.int)
+#
+# Description:
+#       By sourcing this file the environment is set to use the 
+#       COTS provided in the COTS directory.
+#
+# History:
+#       See bottom of the file
+#
+########################################################################
+
+# This script must be sourced from the <COTS> directory
+# Make sure it is the case
+if [ ! -f cots-environment ]
+then
+    echo "The cots-environment file must be sourced from the directory containing it"
+else
+
+    # if we are installing on SLES 11 we do not install all of the COTS,
+    # and we use the default operating system installed software
+    export TARGET_OPERATING_SYSTEM=""
+
+    if [ -r /etc/SuSE-release ];
+    then
+        if [ "`cat /etc/SuSE-release | grep "VERSION = 11"`" != "" -a "`cat /etc/SuSE-release | grep "SUSE Linux Enterprise Server"`" != "" ];
+        then
+            export TARGET_OPERATING_SYSTEM=sles11
+        fi
+    fi
+
+    export COTS=$PWD
+    
+    export CLASSPATH=$COTS/junit3.8.1/junit.jar
+    export CLASSPATH=${CLASSPATH}:${COTS}/rhino/js.jar
+    export CLASSPATH=${CLASSPATH}:${COTS}/jscorba/jscad.jar
+    
+    # Make sure to use the JDK delivered in the cots directory
+    export JAVA_HOME=${COTS}/jdk
+    export JAVA_ROOT=${JAVA_HOME}
+    export SDK_HOME=${JAVA_HOME}
+    export JDK_HOME=${JAVA_HOME}
+    export JRE_HOME=${JAVA_HOME}/jre
+    export JAVA_BINDIR=${JAVA_HOME}/bin
+    
+    # Set the PATH variable
+    export PATH=${COTS}/bin/x86_win32:${COTS}/bin:${COTS}/lib:${PATH}
+    export PATH=${JAVA_BINDIR}:${JRE_HOME}/bin:${PATH}
+
+    if test "$TARGET_OPERATING_SYSTEM" != "sles11"
+    then
+        export ANT_HOME=${COTS}
+        export PATH=${ANT_HOME}/bin:${PATH}
+    fi
+
+    # Set the PYTHONPATH env variable, only in SLES11
+    if test "$TARGET_OPERATING_SYSTEM" = "sles11"
+    then
+        export PYTHONPATH=${COTS}/lib64/python2.6/site-packages/
+    fi
+        
+    #
+    # Set CPLUS_INCLUDE_PATH
+    #
+    if [ $LD_LIBRARY_PATH ]; then 
+        export CPLUS_INCLUDE_PATH=${COTS}/include:$CPLUS_INCLUDE_PATH
+    else
+        export CPLUS_INCLUDE_PATH=${COTS}/include
+    fi
+
+    #
+    # Set LIBRARY_PATH
+    #
+    if [ $LIBRARY_PATH ]; then
+        export LIBRARY_PATH=$COTS/lib:$COTS/lib64:$LIBRARY_PATH
+    else
+        export LIBRARY_PATH=$COTS/lib:$COTS/lib64
+    fi
+    
+    #
+    # Set LD_LIBRARY_PATH, used in GNU/Linux and Solaris
+    #
+    if [ $LD_LIBRARY_PATH ]; then
+        export LD_LIBRARY_PATH=${LIBRARY_PATH}:${LD_LIBRARY_PATH}
+    else
+        export LD_LIBRARY_PATH=${LIBRARY_PATH}
+    fi
+    
+    #
+    # Set DYLD_LIBRARY_PATH, used in MacOS-X 
+    #
+    if [ $DYLD_LIBRARY_PATH ]; then
+        export DYLD_LIBRARY_PATH=${LIBRARY_PATH}:${DYLD_LIBRARY_PATH}
+    else
+        export DYLD_LIBRARY_PATH=${LIBRARY_PATH}
+    fi
+    
+    COTS_VERSION=`cat VERSION |  head -n 1 | cut -d " " -f 3` 
+    echo "************************************"
+    echo "* COTS environment setup completed *"
+    echo "* COTS baseline version $COTS_VERSION      *"
+    echo "************************************"
+fi
+
+###########
+# History #
+###########
+
+#$Log: cots-environment,v $
+#Revision 1.1.1.1  2010-11-30 15:59:21  stp
+#Imported sources.
+#

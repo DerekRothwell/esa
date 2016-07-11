@@ -1,0 +1,137 @@
+#!/bin/bash
+
+########################################################################
+#
+# Copyright (C) 2009 ESOC, ESA (www.esa.int)
+#
+# Description: 
+#   Launch the omniNames service
+#
+# Author : Nicola Di Nisio (TERMA)
+#
+# Creation Date : 2009-02-17
+#
+# History:
+#   See bottom of the file
+#
+########################################################################
+
+#
+# Returns 0 if omniNames is not running
+#
+function is-omniNames-running
+{
+    return `ps -A | grep omniNames | grep -v grep | wc -l` 
+}
+
+# This script must be invoked from the <COTS> directory
+# Make sure it is the case
+if test ! -f corba 
+then
+    echo "This scrip must be invoked from the directory containing it"
+    exit
+fi
+
+if test x"$1" = x"--help" -o x"$1" = x 
+then
+    echo "Usage: corba [start|status|stop]"
+    exit
+fi
+
+if test x"$1" = x"stop" 
+then
+    killall -q omniNames
+    exit
+fi
+
+if test x"$1" = x"status" 
+then
+    is-omniNames-running
+
+    # Store value returned by function is-omniNames-running
+    RETVAL=$?
+
+    if test $RETVAL = "0" 
+    then
+        echo "omniNames is NOT running"
+    else
+        echo "omniNames is running"
+    fi
+
+    exit $RETVAL
+fi
+
+if test x"$1" = x"start" 
+then
+    COTS=$PWD
+
+    # CORBA configuration
+    export OMNIORB_CONFIG=$COTS/etc/omniOrb.cfg
+
+    # Set the PATH variable
+    export PATH=${COTS}/bin:${PATH}
+
+    #
+    # Set LIBRARY_PATH
+    #
+    if test -z $LIBRARY_PATH 
+    then
+        export LIBRARY_PATH=$COTS/lib:$COTS/lib64
+    else
+        export LIBRARY_PATH=$COTS/lib:$COTS/lib64:$LIBRARY_PATH
+    fi
+
+    #
+    # Set LD_LIBRARY_PATH, used in GNU/Linux and Solaris
+    #
+    if test -z $LD_LIBRARY_PATH 
+    then
+        export LD_LIBRARY_PATH=${LIBRARY_PATH}
+    else
+        export LD_LIBRARY_PATH=${LIBRARY_PATH}:${LD_LIBRARY_PATH}
+    fi
+
+    #
+    # Set DYLD_LIBRARY_PATH, used in MacOS-X 
+    #
+    if test -z $DYLD_LIBRARY_PATH 
+    then
+        export DYLD_LIBRARY_PATH=${LIBRARY_PATH}
+    else
+        export DYLD_LIBRARY_PATH=${LIBRARY_PATH}:${DYLD_LIBRARY_PATH}
+    fi
+
+
+    # Start the name server omniNames, if not running yet
+    #
+    if test `ps -A | grep omniNames | grep -v grep | wc -l` = 0
+    then
+        echo "starting CORBA nameservice omniNames"
+
+        export OMNINAMES_LOGDIR=/tmp/omniNames-$USER
+        export omninamesLogFile=omninames-`uname -n`
+
+        if test -e $OMNINAMES_LOGDIR/${omninamesLogFile}.log
+        then
+            rm -f \
+                $OMNINAMES_LOGDIR/${omninamesLogFile}.log \
+                $OMNINAMES_LOGDIR/${omninamesLogFile}.bak
+        fi
+
+        mkdir -p $OMNINAMES_LOGDIR
+
+        omniNames -start &
+    else
+        echo "CORBA nameservice omniNames already running"
+    fi
+
+fi
+
+###########
+# History #
+###########
+
+# $Log: corba,v $
+# Revision 1.1.1.1  2010-11-30 15:59:21  stp
+# Imported sources.
+#
